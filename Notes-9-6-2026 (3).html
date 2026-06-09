@@ -1,0 +1,210 @@
+<html>
+        <head><title>Downloaded HTML</title></head>
+        <body>
+            <pre style="white-space: pre-wrap; word-wrap: break-word;"><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Integration Calculator</title>
+    
+    <script defer src="https://unpkg.com/mathlive"></script>
+    <script src="https://unpkg.com/d3@7"></script>
+    <script src="https://unpkg.com/function-plot@1.24.0/dist/function-plot.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #2f54eb;
+            --bg-color: #f0f2f5;
+            --panel-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .calculator-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+            background: var(--panel-bg);
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+
+        @media (max-width: 850px) {
+            .calculator-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+            color: #1f1f1f;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Styling MathLive components */
+        math-field {
+            font-size: 18px;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #d9d9d9;
+            background: #fff;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        math-field:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(47, 84, 235, 0.2);
+        }
+
+        .limits-container {
+            display: flex;
+            gap: 15px;
+        }
+
+        .limits-container .input-group {
+            flex: 1;
+        }
+
+        .result-box {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f6f8fa;
+            border-left: 4px solid var(--primary-color);
+            border-radius: 4px;
+        }
+
+        .result-title {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .result-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #111;
+        }
+
+        .error-message {
+            color: #ff4d4f;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        /* Graph side styling */
+        .graph-panel {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #fafafa;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            position: relative;
+            min-height: 400px;
+        }
+
+        #graph {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Customizing function-plot styles via CSS */
+        .function-plot .area {
+            fill: rgba(47, 84, 235, 0.25);
+        }
+    </style>
+</head>
+<body>
+
+<div class="calculator-container">
+    <div class="control-panel">
+        <div>
+            <h1>Integration Calculator</h1>
+            <p style="color:#8c8c8c; margin: 0 0 20px 0; font-size: 14px;">Enter your function and integration bounds to calculate the area under the curve.</p>
+        </div>
+
+        <div class="input-group">
+            <label for="fx">Function $f(x)$</label>
+            <math-field id="fx" virtual-keyboard-mode="onfocus">x^2 - 2x + 1</math-field>
+        </div>
+
+        <div class="limits-container">
+            <div class="input-group">
+                <label for="limit-a">Lower Bound ($a$)</label>
+                <math-field id="limit-a">0</math-field>
+            </div>
+            <div class="input-group">
+                <label for="limit-b">Upper Bound ($b$)</label>
+                <math-field id="limit-b">3</math-field>
+            </div>
+        </div>
+
+        <div id="error" class="error-message"></div>
+
+        <div class="result-box">
+            <div class="result-title">Definite Integral Value</div>
+            <div class="result-value" id="result-display">0.0000</div>
+        </div>
+    </div>
+
+    <div class="graph-panel">
+        <div id="graph"></div>
+    </div>
+</div>
+
+<script>
+    // Elements references
+    const fxInput = document.getElementById('fx');
+    const limitAInput = document.getElementById('limit-a');
+    const limitBInput = document.getElementById('limit-b');
+    const resultDisplay = document.getElementById('result-display');
+    const errorDisplay = document.getElementById('error');
+
+    // Setup Event Listeners for Live Updates
+    window.addEventListener('DOMContentLoaded', () => {
+        fxInput.addEventListener('input', calculateAndGraph);
+        limitAInput.addEventListener('input', calculateAndGraph);
+        limitBInput.addEventListener('input', calculateAndGraph);</pre>
+        </body>
+    </html>
